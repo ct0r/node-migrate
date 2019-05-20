@@ -1,0 +1,9 @@
+# dependencies
+node_modules
+
+# npm
+npm-debug.log
+
+# coverage
+coverage
+.nyc_output
