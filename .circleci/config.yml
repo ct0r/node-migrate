@@ -1,0 +1,70 @@
+aliases:
+  - &defaults
+    working_directory: ~/node-migrate
+    docker:
+      - image: circleci/node:lts
+
+version: 2
+
+jobs:
+  test:
+    <<: *defaults
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "package.json" }}
+      - run:
+          name: Install dependencies
+          command: npm ci
+      - save_cache:
+          paths:
+            - node_modules
+          key: v1-dependencies-{{ checksum "package.json" }}
+      - run:
+          name: Run lint
+          command: npm run lint
+      - run:
+          name: Install Code Climate
+          command: |
+            curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
+            chmod +x ./cc-test-reporter
+      - run:
+          name: Run tests
+          command: |
+            ./cc-test-reporter before-build
+            npm run coverage
+            ./cc-test-reporter after-build --coverage-input-type lcov --exit-code $?
+      - persist_to_workspace:
+          root: ~/node-migrate
+          paths: .
+
+  publish:
+    <<: *defaults
+    steps:
+      - attach_workspace:
+          at: ~/node-migrate
+      - run:
+          name: Authenticate to NPM
+          command: echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > ~/.npmrc
+      - run:
+          name: Publish package
+          command: npm publish
+
+workflows:
+  version: 2
+  test-publish:
+    jobs:
+      - test:
+          filters:
+            tags:
+              only: /^v.*/
+      - publish:
+          context: js
+          requires:
+            - test
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
