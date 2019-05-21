@@ -1,6 +1,6 @@
 {
   "name": "node-migrate",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Migrations simplified",
   "main": "index.js",
   "files": [
